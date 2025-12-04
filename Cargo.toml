@@ -1,7 +1,6 @@
 [workspace]
 members = [
     "dns_core",
-    "example",
 ]
 
 resolver = "2"
