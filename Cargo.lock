@@ -3,5 +3,5 @@
 version = 4
 
 [[package]]
-name = "dns_parser"
+name = "dns_core"
 version = "0.0.0"

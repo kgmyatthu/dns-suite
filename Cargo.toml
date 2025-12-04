@@ -1,6 +1,6 @@
 [workspace]
 members = [
-    "dns_parser",
+    "dns_core",
 ]
 
 resolver = "2"
@@ -18,4 +18,4 @@ description = "DNS tui client"
 keywords = ["DNS", "domain"]
 
 [workspace.dependencies]
-dns_parser = { path = "./dns_parser", version = "0.0.0" }
+dns_core = { path = "./dns_core", version = "0.0.0" }

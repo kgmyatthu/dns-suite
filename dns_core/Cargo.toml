@@ -1,5 +1,5 @@
 [package]
-name = "dns_parser"
+name = "dns_core"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true

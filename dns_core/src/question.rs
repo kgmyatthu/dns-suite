@@ -9,15 +9,12 @@ pub struct DnsQuestion {
 impl DnsQuestion {
     pub fn new(name: String, qtype: QueryType) -> DnsQuestion {
         DnsQuestion {
-            name,
-            qtype,
+            name: name,
+            qtype: qtype,
         }
     }
 
-    pub fn read(
-        &mut self,
-        buffer: &mut BytePacketBuffer,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn read(&mut self, buffer: &mut BytePacketBuffer) -> Result<(), Box<dyn std::error::Error>> {
         buffer.read_qname(&mut self.name)?;
         self.qtype = QueryType::from_num(buffer.read_u16()?); // qtype
         let _ = buffer.read_u16()?; // class

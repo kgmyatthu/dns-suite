@@ -1,7 +1,4 @@
-use crate::{
-    buffer::BytePacketBuffer, header::DnsHeader, question::DnsQuestion, record::DnsRecord,
-    types::QueryType,
-};
+use crate::{buffer::BytePacketBuffer, header::DnsHeader, question::DnsQuestion, record::DnsRecord, types::QueryType};
 
 #[derive(Clone, Debug)]
 pub struct DnsPacket {
@@ -9,13 +6,7 @@ pub struct DnsPacket {
     pub questions: Vec<DnsQuestion>,
     pub answers: Vec<DnsRecord>,
     pub authorities: Vec<DnsRecord>,
-    pub resources: Vec<DnsRecord>,
-}
-
-impl Default for DnsPacket {
-    fn default() -> Self {
-        Self::new()
-    }
+    pub resources: Vec<DnsRecord>
 }
 
 impl DnsPacket {
@@ -25,13 +16,11 @@ impl DnsPacket {
             questions: Vec::new(),
             answers: Vec::new(),
             authorities: Vec::new(),
-            resources: Vec::new(),
+            resources: Vec::new()
         }
     }
 
-    pub fn from_buffer(
-        buffer: &mut BytePacketBuffer,
-    ) -> Result<DnsPacket, Box<dyn std::error::Error>> {
+    pub fn from_buffer(buffer: &mut BytePacketBuffer) -> Result<DnsPacket, Box<dyn std::error::Error>> {
         let mut p = DnsPacket::new();
 
         p.header.read(buffer)?;
@@ -58,10 +47,7 @@ impl DnsPacket {
         Ok(p)
     }
 
-    pub fn write(
-        &mut self,
-        buffer: &mut BytePacketBuffer,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn write(&mut self, buffer: &mut BytePacketBuffer) -> Result<(), Box<dyn std::error::Error>> {
         self.header.questions = self.questions.len() as u16;
         self.header.answers = self.answers.len() as u16;
         self.header.authoritative_entries = self.authorities.len() as u16;
@@ -84,16 +70,18 @@ impl DnsPacket {
 
         Ok(())
     }
+
 }
 
 #[cfg(test)]
 mod tests {
     use std::net::UdpSocket;
 
-    use super::{BytePacketBuffer, DnsPacket, DnsQuestion, QueryType};
+    use super::{DnsPacket, QueryType, BytePacketBuffer, DnsQuestion};
+
 
     #[test]
-    fn smoke_test() -> Result<(), Box<dyn std::error::Error>> {
+    fn smoke_test() -> Result<(), Box<dyn std::error::Error>>{
         let qname = "yahoo.com";
         let qtype = QueryType::MX;
 
@@ -122,16 +110,16 @@ mod tests {
         println!("{:#?}", res_packet.header);
 
         for q in res_packet.questions {
-            println!("{q:#?}");
+            println!("{:#?}", q);
         }
         for rec in res_packet.answers {
-            println!("{rec:#?}");
+            println!("{:#?}", rec);
         }
         for rec in res_packet.authorities {
-            println!("{rec:#?}");
+            println!("{:#?}", rec);
         }
         for rec in res_packet.resources {
-            println!("{rec:#?}");
+            println!("{:#?}", rec);
         }
 
         Ok(())

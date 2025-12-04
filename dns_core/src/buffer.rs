@@ -5,16 +5,16 @@ pub struct BytePacketBuffer {
 
 impl Default for BytePacketBuffer {
     fn default() -> Self {
-        Self::new()
+        BytePacketBuffer {
+            buffer: [0; 512],
+            position: 0,
+        }
     }
 }
 
 impl BytePacketBuffer {
     pub fn new() -> BytePacketBuffer {
-        BytePacketBuffer {
-            buffer: [0; 512],
-            position: 0,
-        }
+        Self::default()
     }
 
     pub fn set(&mut self, pos: usize, val: u8) -> Result<(), Box<dyn std::error::Error>> {
@@ -131,7 +131,7 @@ impl BytePacketBuffer {
         let mut pos = self.pos();
 
         let mut jumped = false;
-        let max_jumps = 5;
+        let max_jumps = 50;
         let mut jumps_performed = 0;
 
         let mut delimiter = "";
