@@ -1,6 +1,21 @@
-[package]
-name = "dns"
-version = "0.1.0"
-edition = "2024"
+[workspace]
+members = [
+    "dns_parser",
+]
 
-[dependencies]
+resolver = "2"
+
+[workspace.package]
+# Version is managed by `.github/workflows/release.yml`
+version = "0.0.0"
+authors = ["Kaung Myatthu"]
+edition = "2024"
+license = "BUSL-1.1"
+repository = ""
+homepage = ""
+documentation = ""
+description = "DNS tui client"
+keywords = ["DNS", "domain"]
+
+[workspace.dependencies]
+dns_parser = { path = "./dns_parser", version = "0.0.0" }

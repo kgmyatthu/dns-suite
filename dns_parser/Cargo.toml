@@ -1,0 +1,16 @@
+[package]
+name = "dns_parser"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+keywords.workspace = true
+description.workspace = true
+
+include = ["src"]
+
+[lib]
+crate-type = ["cdylib", "rlib"]
