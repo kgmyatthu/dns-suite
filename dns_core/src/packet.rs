@@ -75,12 +75,13 @@ impl DnsPacket {
 
 #[cfg(test)]
 mod tests {
-    use std::net::UdpSocket;
-
-    use super::{DnsPacket, QueryType, BytePacketBuffer, DnsQuestion};
+    use super::{BytePacketBuffer, DnsPacket, DnsQuestion, QueryType};
+    use crate::record::DnsRecord;
+    use std::net::{Ipv4Addr, UdpSocket};
 
 
     #[test]
+    #[ignore]
     fn smoke_test() -> Result<(), Box<dyn std::error::Error>>{
         let qname = "yahoo.com";
         let qtype = QueryType::MX;
@@ -122,6 +123,47 @@ mod tests {
             println!("{:#?}", rec);
         }
 
+        Ok(())
+    }
+
+    #[test]
+    fn packet_roundtrip() -> Result<(), Box<dyn std::error::Error>> {
+        let mut packet = DnsPacket::new();
+        packet.header.id = 0x1A2B;
+        packet.header.recursion_desired = true;
+        packet
+            .questions
+            .push(DnsQuestion::new("example.com".into(), QueryType::A));
+        packet.answers.push(DnsRecord::A {
+            domain: "example.com".into(),
+            class: 1,
+            ttl: 300,
+            addr: Ipv4Addr::new(8, 8, 8, 8),
+        });
+        packet.authorities.push(DnsRecord::NS {
+            domain: "example.com".into(),
+            class: 1,
+            host: "ns1.example.com".into(),
+            ttl: 300,
+        });
+        packet.resources.push(DnsRecord::CNAME {
+            domain: "alias.example.com".into(),
+            class: 1,
+            host: "example.com".into(),
+            ttl: 300,
+        });
+
+        let mut buffer = BytePacketBuffer::new();
+        packet.write(&mut buffer)?;
+
+        buffer.seek(0);
+        let parsed = DnsPacket::from_buffer(&mut buffer)?;
+
+        assert_eq!(packet.header.id, parsed.header.id);
+        assert_eq!(packet.questions, parsed.questions);
+        assert_eq!(packet.answers, parsed.answers);
+        assert_eq!(packet.authorities, parsed.authorities);
+        assert_eq!(packet.resources, parsed.resources);
         Ok(())
     }
 }

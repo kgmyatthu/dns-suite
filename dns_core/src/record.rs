@@ -159,6 +159,7 @@ impl DnsRecord {
                 buffer.write_u16(QueryType::A.to_num())?;
                 buffer.write_u16(*class)?;
                 buffer.write_u32(*ttl)?;
+                buffer.write_u16(4)?;
 
                 let ip_octets = ip.octets();
                 buffer.write_u8(ip_octets[0])?;
@@ -200,7 +201,7 @@ impl DnsRecord {
             } => {
                 buffer.write_qname(domain)?;
                 buffer.write_u16(QueryType::CNAME.to_num())?;
-                buffer.write_u16(1)?;
+                buffer.write_u16(*class)?;
                 buffer.write_u32(*ttl)?;
 
                 let pos = buffer.pos();
@@ -210,7 +211,7 @@ impl DnsRecord {
 
                 let size = buffer.pos() - (pos + 2);
                 buffer.set_u16(pos, size as u16)?;
-                Ok(start_pos - buffer.pos())
+                Ok(buffer.pos() - start_pos)
             }
             DnsRecord::MX {
                 domain,
@@ -232,7 +233,7 @@ impl DnsRecord {
 
                 let size = buffer.pos() - (pos + 2);
                 buffer.set_u16(pos, size as u16)?;
-                Ok(start_pos - buffer.pos())
+                Ok(buffer.pos() - start_pos)
             }
             DnsRecord::AAAA {
                 domain,
@@ -252,15 +253,115 @@ impl DnsRecord {
                 Ok(buffer.pos() - start_pos)
             }
             DnsRecord::UNKNOWN {
-                domain,
-                qtype,
-                class,
-                ttl,
-                len,
+                domain: _,
+                qtype: _,
+                class: _,
+                ttl: _,
+                len: _,
             } => {
                 println!("Unkown Record Type!");
                 Ok(0)
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::DnsRecord;
+    use crate::buffer::BytePacketBuffer;
+    use crate::types::QueryType;
+    use std::net::{Ipv4Addr, Ipv6Addr};
+
+    #[test]
+    fn a_record_roundtrip() {
+        let mut buffer = BytePacketBuffer::new();
+        let record = DnsRecord::A {
+            domain: "example.com".to_string(),
+            class: 1,
+            ttl: 3600,
+            addr: Ipv4Addr::new(127, 0, 0, 1),
+        };
+
+        record.write(&mut buffer).unwrap();
+        buffer.seek(0);
+
+        let parsed = DnsRecord::read(&mut buffer).unwrap();
+        assert_eq!(record, parsed);
+    }
+
+    #[test]
+    fn cname_and_mx_records_report_length() {
+        let mut cname_buffer = BytePacketBuffer::new();
+        let cname = DnsRecord::CNAME {
+            domain: "alias.example".into(),
+            class: 1,
+            host: "target.example".into(),
+            ttl: 123,
+        };
+
+        let cname_len = cname.write(&mut cname_buffer).unwrap();
+        assert!(cname_len > 0);
+
+        cname_buffer.seek(0);
+        let parsed_cname = DnsRecord::read(&mut cname_buffer).unwrap();
+        assert_eq!(cname, parsed_cname);
+
+        let mut mx_buffer = BytePacketBuffer::new();
+        let mx = DnsRecord::MX {
+            domain: "mx.example".into(),
+            priority: 10,
+            class: 1,
+            host: "mail.example".into(),
+            ttl: 55,
+        };
+
+        let mx_len = mx.write(&mut mx_buffer).unwrap();
+        assert!(mx_len > 0);
+
+        mx_buffer.seek(0);
+        let parsed_mx = DnsRecord::read(&mut mx_buffer).unwrap();
+        assert_eq!(mx, parsed_mx);
+    }
+
+    #[test]
+    fn unknown_record_preserves_type() {
+        let mut buffer = BytePacketBuffer::new();
+
+        buffer.write_qname("unknown.example").unwrap();
+        buffer.write_u16(65000).unwrap();
+        buffer.write_u16(1).unwrap();
+        buffer.write_u32(0).unwrap();
+        buffer.write_u16(0).unwrap();
+        buffer.seek(0);
+
+        let parsed = DnsRecord::read(&mut buffer).unwrap();
+        assert_eq!(
+            parsed,
+            DnsRecord::UNKNOWN {
+                domain: "unknown.example".into(),
+                qtype: QueryType::UNKNOWN(65000),
+                class: 1,
+                ttl: 0,
+                len: 0,
+            }
+        );
+    }
+
+    #[test]
+    fn aaaa_record_roundtrip() {
+        let mut buffer = BytePacketBuffer::new();
+        let record = DnsRecord::AAAA {
+            domain: "ipv6.example".into(),
+            addr: Ipv6Addr::LOCALHOST,
+            class: 1,
+            ttl: 600,
+        };
+
+        record.write(&mut buffer).unwrap();
+        buffer.seek(0);
+
+        let parsed = DnsRecord::read(&mut buffer).unwrap();
+        assert_eq!(record, parsed);
     }
 }

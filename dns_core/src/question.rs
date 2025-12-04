@@ -32,3 +32,22 @@ impl DnsQuestion {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::DnsQuestion;
+    use crate::{buffer::BytePacketBuffer, types::QueryType};
+
+    #[test]
+    fn question_roundtrip() {
+        let question = DnsQuestion::new("example.com".into(), QueryType::MX);
+        let mut buffer = BytePacketBuffer::new();
+        question.write(&mut buffer).unwrap();
+        buffer.seek(0);
+
+        let mut parsed = DnsQuestion::new(String::new(), QueryType::UNKNOWN(0));
+        parsed.read(&mut buffer).unwrap();
+
+        assert_eq!(question, parsed);
+    }
+}
