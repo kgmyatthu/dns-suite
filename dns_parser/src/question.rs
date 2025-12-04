@@ -9,8 +9,8 @@ pub struct DnsQuestion {
 impl DnsQuestion {
     pub fn new(name: String, qtype: QueryType) -> DnsQuestion {
         DnsQuestion {
-            name: name,
-            qtype: qtype,
+            name,
+            qtype,
         }
     }
 

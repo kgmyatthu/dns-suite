@@ -3,6 +3,12 @@ pub struct BytePacketBuffer {
     pub position: usize,
 }
 
+impl Default for BytePacketBuffer {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl BytePacketBuffer {
     pub fn new() -> BytePacketBuffer {
         BytePacketBuffer {
@@ -100,7 +106,7 @@ impl BytePacketBuffer {
         let third_byte = self.read()? as u32;
         let fourth_byte = self.read()? as u32;
 
-        Ok((first_byte << 24) | (second_byte << 16) | (third_byte << 8) | (fourth_byte << 0))
+        Ok((first_byte << 24) | (second_byte << 16) | (third_byte << 8) | fourth_byte)
     }
 
     pub fn write_qname(&mut self, domain: &str) -> Result<(), Box<dyn std::error::Error>> {

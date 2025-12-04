@@ -12,6 +12,12 @@ pub struct DnsPacket {
     pub resources: Vec<DnsRecord>,
 }
 
+impl Default for DnsPacket {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl DnsPacket {
     pub fn new() -> DnsPacket {
         DnsPacket {
@@ -116,16 +122,16 @@ mod tests {
         println!("{:#?}", res_packet.header);
 
         for q in res_packet.questions {
-            println!("{:#?}", q);
+            println!("{q:#?}");
         }
         for rec in res_packet.answers {
-            println!("{:#?}", rec);
+            println!("{rec:#?}");
         }
         for rec in res_packet.authorities {
-            println!("{:#?}", rec);
+            println!("{rec:#?}");
         }
         for rec in res_packet.resources {
-            println!("{:#?}", rec);
+            println!("{rec:#?}");
         }
 
         Ok(())
