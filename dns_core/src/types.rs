@@ -54,3 +54,26 @@ impl ResultCode {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{QueryType, ResultCode};
+
+    #[test]
+    fn query_type_conversions() {
+        assert_eq!(QueryType::A.to_num(), 1);
+        assert_eq!(QueryType::from_num(15), QueryType::MX);
+        assert_eq!(QueryType::from_num(65000), QueryType::UNKNOWN(65000));
+    }
+
+    #[test]
+    fn result_code_from_num_maps_all_values() {
+        assert_eq!(ResultCode::from_num(0), ResultCode::NOERROR);
+        assert_eq!(ResultCode::from_num(1), ResultCode::FORMERR);
+        assert_eq!(ResultCode::from_num(2), ResultCode::SERVFAIL);
+        assert_eq!(ResultCode::from_num(3), ResultCode::NXDOMAIN);
+        assert_eq!(ResultCode::from_num(4), ResultCode::NOTIMP);
+        assert_eq!(ResultCode::from_num(5), ResultCode::REFUSED);
+        assert_eq!(ResultCode::from_num(250), ResultCode::NOERROR);
+    }
+}

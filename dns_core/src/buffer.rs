@@ -73,7 +73,7 @@ impl BytePacketBuffer {
     }
 
     pub fn get(&self, pos: usize) -> Result<u8, Box<dyn std::error::Error>> {
-        if self.position >= 512 {
+        if pos >= 512 {
             return Err("End of buffer reached".into());
         }
 
@@ -176,5 +176,46 @@ impl BytePacketBuffer {
         }
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::BytePacketBuffer;
+
+    #[test]
+    fn write_and_read_primitives_roundtrip() {
+        let mut buffer = BytePacketBuffer::new();
+        buffer.write_u16(0xBEEF).unwrap();
+        buffer.write_u32(0xDEADBEEF).unwrap();
+        buffer.seek(0);
+
+        assert_eq!(0xBEEF, buffer.read_u16().unwrap());
+        assert_eq!(0xDEADBEEF, buffer.read_u32().unwrap());
+    }
+
+    #[test]
+    fn get_out_of_bounds_fails() {
+        let buffer = BytePacketBuffer::new();
+        assert!(buffer.get(512).is_err());
+    }
+
+    #[test]
+    fn write_qname_rejects_long_label() {
+        let mut buffer = BytePacketBuffer::new();
+        let long_label = "a".repeat(64);
+        let err = buffer.write_qname(&format!("{}{}.com", long_label, ".label")).unwrap_err();
+        assert_eq!(err.to_string(), "Single label exceeds 63 characters of length");
+    }
+
+    #[test]
+    fn read_qname_detects_jump_loops() {
+        let mut buffer = BytePacketBuffer::new();
+        buffer.buffer[0] = 0xC0;
+        buffer.buffer[1] = 0x00; // Pointer back to the start of the name
+        buffer.buffer[2] = 0x00; // Terminator for when the loop would end (never reached)
+
+        let mut output = String::new();
+        assert!(buffer.read_qname(&mut output).is_err());
     }
 }
