@@ -161,10 +161,11 @@ impl DnsRecord {
                 buffer.write_u32(*ttl)?;
 
                 let ip_octets = ip.octets();
-                buffer.write_u8(ip_octets[0])?;
-                buffer.write_u8(ip_octets[1])?;
-                buffer.write_u8(ip_octets[2])?;
-                buffer.write_u8(ip_octets[3])?;
+                buffer.write_u16(ip_octets.len() as u16)?;
+
+                for octet in ip_octets.iter() {
+                    buffer.write_u8(*octet)?;
+                }
 
                 Ok(buffer.pos() - start_pos)
             }
@@ -200,7 +201,7 @@ impl DnsRecord {
             } => {
                 buffer.write_qname(domain)?;
                 buffer.write_u16(QueryType::CNAME.to_num())?;
-                buffer.write_u16(1)?;
+                buffer.write_u16(*class)?;
                 buffer.write_u32(*ttl)?;
 
                 let pos = buffer.pos();
@@ -210,7 +211,7 @@ impl DnsRecord {
 
                 let size = buffer.pos() - (pos + 2);
                 buffer.set_u16(pos, size as u16)?;
-                Ok(start_pos - buffer.pos())
+                Ok(buffer.pos() - start_pos)
             }
             DnsRecord::MX {
                 domain,
@@ -232,7 +233,7 @@ impl DnsRecord {
 
                 let size = buffer.pos() - (pos + 2);
                 buffer.set_u16(pos, size as u16)?;
-                Ok(start_pos - buffer.pos())
+                Ok(buffer.pos() - start_pos)
             }
             DnsRecord::AAAA {
                 domain,
@@ -258,8 +259,17 @@ impl DnsRecord {
                 ttl,
                 len,
             } => {
-                println!("Unkown Record Type!");
-                Ok(0)
+                buffer.write_qname(domain)?;
+                buffer.write_u16(qtype.to_num())?;
+                buffer.write_u16(*class)?;
+                buffer.write_u32(*ttl)?;
+                buffer.write_u16(*len)?;
+
+                for _ in 0..*len {
+                    buffer.write_u8(0)?;
+                }
+
+                Ok(buffer.pos() - start_pos)
             }
         }
     }
