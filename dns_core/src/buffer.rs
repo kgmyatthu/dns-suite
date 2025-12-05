@@ -81,7 +81,7 @@ impl BytePacketBuffer {
     }
 
     pub fn get(&self, pos: usize) -> Result<u8, Box<dyn std::error::Error>> {
-        if self.position >= self.size {
+        if pos >= self.size {
             return Err("End of buffer reached".into());
         }
 

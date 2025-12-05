@@ -89,6 +89,16 @@ fn byte_packet_buffer_boundary_conditions() {
 }
 
 #[test]
+fn get_reads_from_requested_position_even_after_seek() {
+    let mut buffer = BytePacketBuffer::new();
+    buffer.buffer[0] = 0xAB;
+    buffer.set_size(1);
+    buffer.seek(1);
+
+    assert_eq!(0xAB, buffer.get(0).unwrap());
+}
+
+#[test]
 fn qname_roundtrip_and_pointer_behaviour() {
     let mut buffer = BytePacketBuffer::new();
     buffer.write_qname("MiXeD.Case.Test").unwrap();
