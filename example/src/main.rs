@@ -52,8 +52,7 @@ fn print_packet(domain: &str, qtype: QueryType, server: IpAddr, packet: &DnsPack
     let domain_display = display_domain(domain);
 
     println!(
-        "; <<>> DiG <<>> @{} {} {}",
-        server, domain_display, qtype_display
+        "; <<>> DiG <<>> @{server} {domain_display} {qtype_display}"
     );
     println!(";; global options: +cmd");
     println!(";; Got answer:\n");
@@ -124,7 +123,7 @@ fn parse_args() -> Result<(IpAddr, String, QueryType), Box<dyn std::error::Error
         if qtype.is_none() {
             qtype = Some(
                 parse_query_type(&raw_arg)
-                    .ok_or_else(|| format!("Unknown query type '{}'.", raw_arg))?,
+                    .ok_or_else(|| format!("Unknown query type '{raw_arg}'."))?,
             );
             continue;
         }
@@ -157,14 +156,14 @@ fn display_class(class: u16) -> String {
         2 => "CS".to_string(),
         3 => "CH".to_string(),
         4 => "HS".to_string(),
-        value => format!("CLASS{}", value),
+        value => format!("CLASS{value}"),
     }
 }
 
 fn display_query_type(qtype: QueryType) -> String {
     match qtype {
-        QueryType::UNKNOWN(value) => format!("TYPE{}", value),
-        other => format!("{:?}", other),
+        QueryType::UNKNOWN(value) => format!("TYPE{value}"),
+        other => format!("{other:?}"),
     }
 }
 
@@ -313,7 +312,7 @@ fn display_domain(domain: &str) -> String {
     if domain.ends_with('.') {
         domain.to_string()
     } else {
-        format!("{}.", domain)
+        format!("{domain}.")
     }
 }
 
