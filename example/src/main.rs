@@ -1,5 +1,6 @@
 use std::env;
 use std::fmt::Write as _;
+use std::io::ErrorKind;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, UdpSocket};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
@@ -42,7 +43,8 @@ fn lookup(
     socket.send_to(&req_buffer.buffer[..req_buffer.pos()], (server, 53))?;
 
     let mut resp_buffer = BytePacketBuffer::new();
-    socket.recv_from(&mut resp_buffer.buffer)?;
+    let (response_size, _) = socket.recv_from(&mut resp_buffer.buffer)?;
+    resp_buffer.set_size(response_size);
 
     DnsPacket::from_buffer(&mut resp_buffer)
 }
@@ -366,15 +368,20 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "Requires external network access to Google Public DNS"]
     fn queries_google_for_each_supported_type() {
         for &qtype in ALL_QUERY_TYPES {
             let response = lookup("google.com", qtype, GOOGLE_DNS);
-            assert!(
-                response.is_ok(),
-                "lookup failed for {qtype:?}: {:?}",
-                response.err()
-            );
+            if let Err(err) = response {
+                if err
+                    .downcast_ref::<std::io::Error>()
+                    .is_some_and(|io_err| io_err.kind() == ErrorKind::NetworkUnreachable)
+                {
+                    eprintln!("Skipping network-dependent test: {err}");
+                    return;
+                }
+
+                panic!("lookup failed for {qtype:?}: {err:?}");
+            }
         }
     }
 }
