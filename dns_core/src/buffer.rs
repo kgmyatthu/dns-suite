@@ -1,13 +1,17 @@
+pub const MAX_PACKET_SIZE: usize = 4096;
+
 pub struct BytePacketBuffer {
-    pub buffer: [u8; 512],
+    pub buffer: [u8; MAX_PACKET_SIZE],
     pub position: usize,
+    size: usize,
 }
 
 impl Default for BytePacketBuffer {
     fn default() -> Self {
         BytePacketBuffer {
-            buffer: [0; 512],
+            buffer: [0; MAX_PACKET_SIZE],
             position: 0,
+            size: MAX_PACKET_SIZE,
         }
     }
 }
@@ -34,8 +38,12 @@ impl BytePacketBuffer {
         self.position
     }
 
+    pub fn set_size(&mut self, size: usize) {
+        self.size = size.min(MAX_PACKET_SIZE);
+    }
+
     fn write(&mut self, val: u8) -> Result<(), Box<dyn std::error::Error>> {
-        if self.position >= 512 {
+        if self.position >= MAX_PACKET_SIZE {
             return Err("End of buffer reached".into());
         }
 
@@ -61,7 +69,7 @@ impl BytePacketBuffer {
     }
 
     pub fn read(&mut self) -> Result<u8, Box<dyn std::error::Error>> {
-        if self.position >= 512 {
+        if self.position >= self.size {
             return Err("End of buffer reached".into());
         }
 
@@ -73,7 +81,7 @@ impl BytePacketBuffer {
     }
 
     pub fn get(&self, pos: usize) -> Result<u8, Box<dyn std::error::Error>> {
-        if self.position >= 512 {
+        if pos >= self.size {
             return Err("End of buffer reached".into());
         }
 
@@ -90,7 +98,7 @@ impl BytePacketBuffer {
 
     pub fn get_range(&self, start: usize, end: usize) -> Result<&[u8], Box<dyn std::error::Error>> {
         let len = start + end;
-        if len >= 512 {
+        if len > self.size {
             return Err("End of buffer reached".into());
         }
         Ok(&self.buffer[start..len])

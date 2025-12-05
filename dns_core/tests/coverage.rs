@@ -2,6 +2,7 @@ use std::net::{Ipv4Addr, Ipv6Addr};
 
 use dns_core::{
     buffer::BytePacketBuffer,
+    buffer::MAX_PACKET_SIZE,
     header::DnsHeader,
     packet::DnsPacket,
     question::DnsQuestion,
@@ -81,10 +82,20 @@ fn byte_packet_buffer_boundary_conditions() {
     buffer.set(5, 0xAA).unwrap();
     assert_eq!(0xAA, buffer.get(5).unwrap());
 
-    buffer.seek(511);
+    buffer.seek(MAX_PACKET_SIZE - 1);
     assert!(buffer.write_u8(0xFF).is_ok());
     assert!(buffer.write_u8(0xEE).is_err());
-    assert!(buffer.get_range(510, 5).is_err());
+    assert!(buffer.get_range(MAX_PACKET_SIZE - 2, 5).is_err());
+}
+
+#[test]
+fn get_reads_from_requested_position_even_after_seek() {
+    let mut buffer = BytePacketBuffer::new();
+    buffer.buffer[0] = 0xAB;
+    buffer.set_size(1);
+    buffer.seek(1);
+
+    assert_eq!(0xAB, buffer.get(0).unwrap());
 }
 
 #[test]
