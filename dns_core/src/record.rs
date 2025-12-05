@@ -469,6 +469,63 @@ mod tests {
     }
 
     #[test]
+    fn soa_record_roundtrip() {
+        let record = DnsRecord::SOA {
+            domain: "example.com".into(),
+            class: 1,
+            ttl: 3600,
+            mname: "ns1.example.com".into(),
+            rname: "hostmaster.example.com".into(),
+            serial: 20240101,
+            refresh: 7200,
+            retry: 600,
+            expire: 1209600,
+            minimum: 3600,
+        };
+
+        let mut buffer = BytePacketBuffer::new();
+        record.write(&mut buffer).unwrap();
+        buffer.seek(0);
+
+        let parsed = DnsRecord::read(&mut buffer).unwrap();
+        assert_eq!(record, parsed);
+    }
+
+    #[test]
+    fn txt_record_roundtrip() {
+        let record = DnsRecord::TXT {
+            domain: "txt.example".into(),
+            class: 1,
+            ttl: 450,
+            data: vec!["v=spf1 -all".into(), "hello world".into()],
+        };
+
+        let mut buffer = BytePacketBuffer::new();
+        record.write(&mut buffer).unwrap();
+        buffer.seek(0);
+
+        let parsed = DnsRecord::read(&mut buffer).unwrap();
+        assert_eq!(record, parsed);
+    }
+
+    #[test]
+    fn ptr_record_roundtrip() {
+        let record = DnsRecord::PTR {
+            domain: "4.3.2.1.in-addr.arpa".into(),
+            class: 1,
+            ttl: 86400,
+            host: "example.com".into(),
+        };
+
+        let mut buffer = BytePacketBuffer::new();
+        record.write(&mut buffer).unwrap();
+        buffer.seek(0);
+
+        let parsed = DnsRecord::read(&mut buffer).unwrap();
+        assert_eq!(record, parsed);
+    }
+
+    #[test]
     fn txt_record_errors_when_length_exceeds_rdata() {
         let mut buffer = BytePacketBuffer::new();
         buffer.write_qname("txt.example").unwrap();
