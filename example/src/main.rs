@@ -653,7 +653,7 @@ mod tests {
             if let Err(err) = response {
                 if err
                     .downcast_ref::<std::io::Error>()
-                    .is_some_and(|io_err| io_err.kind() == ErrorKind::NetworkUnreachable)
+                    .is_some_and(|io_err| io_err.kind() == std::io::ErrorKind::NetworkUnreachable)
                 {
                     eprintln!("Skipping network-dependent test: {err}");
                     return;
