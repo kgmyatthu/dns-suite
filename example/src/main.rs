@@ -1,6 +1,6 @@
 use std::env;
 use std::fmt::Write as _;
-use std::io::{ErrorKind, Read, Write};
+use std::io::{Read, Write};
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, TcpStream, UdpSocket};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
@@ -243,180 +243,6 @@ fn parse_query_type(name: &str) -> Option<QueryType> {
     };
 
     parsed.or_else(|| name.parse::<u16>().ok().map(QueryType::from_num))
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    const GOOGLE_DNS: IpAddr = IpAddr::V4(Ipv4Addr::new(8, 8, 8, 8));
-
-    const ALL_QUERY_TYPES: &[QueryType] = &[
-        QueryType::A,
-        QueryType::NS,
-        QueryType::CNAME,
-        QueryType::SOA,
-        QueryType::PTR,
-        QueryType::HINFO,
-        QueryType::MINFO,
-        QueryType::MX,
-        QueryType::TXT,
-        QueryType::RP,
-        QueryType::AFSDB,
-        QueryType::X25,
-        QueryType::ISDN,
-        QueryType::RT,
-        QueryType::NSAP,
-        QueryType::NsapPtr,
-        QueryType::SIG,
-        QueryType::KEY,
-        QueryType::PX,
-        QueryType::AAAA,
-        QueryType::LOC,
-        QueryType::SRV,
-        QueryType::NAPTR,
-        QueryType::KX,
-        QueryType::CERT,
-        QueryType::DNAME,
-        QueryType::OPT,
-        QueryType::APL,
-        QueryType::DS,
-        QueryType::SSHFP,
-        QueryType::IPSECKEY,
-        QueryType::RRSIG,
-        QueryType::NSEC,
-        QueryType::DNSKEY,
-        QueryType::DHCID,
-        QueryType::NSEC3,
-        QueryType::NSEC3PARAM,
-        QueryType::TLSA,
-        QueryType::SMIMEA,
-        QueryType::HIP,
-        QueryType::CDS,
-        QueryType::CDNSKEY,
-        QueryType::OPENPGPKEY,
-        QueryType::CSYNC,
-        QueryType::ZONEMD,
-        QueryType::SVCB,
-        QueryType::HTTPS,
-        QueryType::SPF,
-        QueryType::NID,
-        QueryType::L32,
-        QueryType::L64,
-        QueryType::LP,
-        QueryType::EUI48,
-        QueryType::EUI64,
-        QueryType::TKEY,
-        QueryType::TSIG,
-        QueryType::IXFR,
-        QueryType::AXFR,
-        QueryType::ANY,
-        QueryType::URI,
-        QueryType::CAA,
-        QueryType::AVC,
-        QueryType::DOA,
-        QueryType::AMTRELAY,
-        QueryType::TA,
-        QueryType::DLV,
-    ];
-
-    #[test]
-    fn parses_all_query_type_names() {
-        let names = [
-            "A",
-            "NS",
-            "CNAME",
-            "SOA",
-            "PTR",
-            "HINFO",
-            "MINFO",
-            "MX",
-            "TXT",
-            "RP",
-            "AFSDB",
-            "X25",
-            "ISDN",
-            "RT",
-            "NSAP",
-            "NSAP-PTR",
-            "SIG",
-            "KEY",
-            "PX",
-            "AAAA",
-            "LOC",
-            "SRV",
-            "NAPTR",
-            "KX",
-            "CERT",
-            "DNAME",
-            "OPT",
-            "APL",
-            "DS",
-            "SSHFP",
-            "IPSECKEY",
-            "RRSIG",
-            "NSEC",
-            "DNSKEY",
-            "DHCID",
-            "NSEC3",
-            "NSEC3PARAM",
-            "TLSA",
-            "SMIMEA",
-            "HIP",
-            "CDS",
-            "CDNSKEY",
-            "OPENPGPKEY",
-            "CSYNC",
-            "ZONEMD",
-            "SVCB",
-            "HTTPS",
-            "SPF",
-            "NID",
-            "L32",
-            "L64",
-            "LP",
-            "EUI48",
-            "EUI64",
-            "TKEY",
-            "TSIG",
-            "IXFR",
-            "AXFR",
-            "ANY",
-            "URI",
-            "CAA",
-            "AVC",
-            "DOA",
-            "AMTRELAY",
-            "TA",
-            "DLV",
-        ];
-
-        for (name, &qtype) in names.iter().zip(ALL_QUERY_TYPES.iter()) {
-            assert_eq!(
-                parse_query_type(name),
-                Some(qtype),
-                "expected '{name}' to parse as {qtype:?}"
-            );
-        }
-    }
-
-    #[test]
-    fn queries_google_for_each_supported_type() {
-        for &qtype in ALL_QUERY_TYPES {
-            let response = lookup("google.com", qtype, GOOGLE_DNS);
-            if let Err(err) = response {
-                if err
-                    .downcast_ref::<std::io::Error>()
-                    .is_some_and(|io_err| io_err.kind() == ErrorKind::NetworkUnreachable)
-                {
-                    eprintln!("Skipping network-dependent test: {err}");
-                    return;
-                }
-
-                panic!("lookup failed for {qtype:?}: {err:?}");
-            }
-        }
-    }
 }
 
 fn display_class(class: u16) -> String {
@@ -663,4 +489,178 @@ fn random_id() -> u16 {
         .duration_since(UNIX_EPOCH)
         .unwrap_or_default();
     (now.subsec_nanos() & 0xFFFF) as u16
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const GOOGLE_DNS: IpAddr = IpAddr::V4(Ipv4Addr::new(8, 8, 8, 8));
+
+    const ALL_QUERY_TYPES: &[QueryType] = &[
+        QueryType::A,
+        QueryType::NS,
+        QueryType::CNAME,
+        QueryType::SOA,
+        QueryType::PTR,
+        QueryType::HINFO,
+        QueryType::MINFO,
+        QueryType::MX,
+        QueryType::TXT,
+        QueryType::RP,
+        QueryType::AFSDB,
+        QueryType::X25,
+        QueryType::ISDN,
+        QueryType::RT,
+        QueryType::NSAP,
+        QueryType::NsapPtr,
+        QueryType::SIG,
+        QueryType::KEY,
+        QueryType::PX,
+        QueryType::AAAA,
+        QueryType::LOC,
+        QueryType::SRV,
+        QueryType::NAPTR,
+        QueryType::KX,
+        QueryType::CERT,
+        QueryType::DNAME,
+        QueryType::OPT,
+        QueryType::APL,
+        QueryType::DS,
+        QueryType::SSHFP,
+        QueryType::IPSECKEY,
+        QueryType::RRSIG,
+        QueryType::NSEC,
+        QueryType::DNSKEY,
+        QueryType::DHCID,
+        QueryType::NSEC3,
+        QueryType::NSEC3PARAM,
+        QueryType::TLSA,
+        QueryType::SMIMEA,
+        QueryType::HIP,
+        QueryType::CDS,
+        QueryType::CDNSKEY,
+        QueryType::OPENPGPKEY,
+        QueryType::CSYNC,
+        QueryType::ZONEMD,
+        QueryType::SVCB,
+        QueryType::HTTPS,
+        QueryType::SPF,
+        QueryType::NID,
+        QueryType::L32,
+        QueryType::L64,
+        QueryType::LP,
+        QueryType::EUI48,
+        QueryType::EUI64,
+        QueryType::TKEY,
+        QueryType::TSIG,
+        QueryType::IXFR,
+        QueryType::AXFR,
+        QueryType::ANY,
+        QueryType::URI,
+        QueryType::CAA,
+        QueryType::AVC,
+        QueryType::DOA,
+        QueryType::AMTRELAY,
+        QueryType::TA,
+        QueryType::DLV,
+    ];
+
+    #[test]
+    fn parses_all_query_type_names() {
+        let names = [
+            "A",
+            "NS",
+            "CNAME",
+            "SOA",
+            "PTR",
+            "HINFO",
+            "MINFO",
+            "MX",
+            "TXT",
+            "RP",
+            "AFSDB",
+            "X25",
+            "ISDN",
+            "RT",
+            "NSAP",
+            "NSAP-PTR",
+            "SIG",
+            "KEY",
+            "PX",
+            "AAAA",
+            "LOC",
+            "SRV",
+            "NAPTR",
+            "KX",
+            "CERT",
+            "DNAME",
+            "OPT",
+            "APL",
+            "DS",
+            "SSHFP",
+            "IPSECKEY",
+            "RRSIG",
+            "NSEC",
+            "DNSKEY",
+            "DHCID",
+            "NSEC3",
+            "NSEC3PARAM",
+            "TLSA",
+            "SMIMEA",
+            "HIP",
+            "CDS",
+            "CDNSKEY",
+            "OPENPGPKEY",
+            "CSYNC",
+            "ZONEMD",
+            "SVCB",
+            "HTTPS",
+            "SPF",
+            "NID",
+            "L32",
+            "L64",
+            "LP",
+            "EUI48",
+            "EUI64",
+            "TKEY",
+            "TSIG",
+            "IXFR",
+            "AXFR",
+            "ANY",
+            "URI",
+            "CAA",
+            "AVC",
+            "DOA",
+            "AMTRELAY",
+            "TA",
+            "DLV",
+        ];
+
+        for (name, &qtype) in names.iter().zip(ALL_QUERY_TYPES.iter()) {
+            assert_eq!(
+                parse_query_type(name),
+                Some(qtype),
+                "expected '{name}' to parse as {qtype:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn queries_google_for_each_supported_type() {
+        for &qtype in ALL_QUERY_TYPES {
+            let response = lookup("google.com", qtype, GOOGLE_DNS);
+            if let Err(err) = response {
+                if err
+                    .downcast_ref::<std::io::Error>()
+                    .is_some_and(|io_err| io_err.kind() == ErrorKind::NetworkUnreachable)
+                {
+                    eprintln!("Skipping network-dependent test: {err}");
+                    return;
+                }
+
+                panic!("lookup failed for {qtype:?}: {err:?}");
+            }
+        }
+    }
 }
