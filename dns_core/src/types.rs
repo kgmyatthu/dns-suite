@@ -228,12 +228,13 @@ pub enum ResultCode {
 impl ResultCode {
     pub fn from_num(num: u8) -> ResultCode {
         match num {
+            0 => ResultCode::NOERROR,
             1 => ResultCode::FORMERR,
             2 => ResultCode::SERVFAIL,
             3 => ResultCode::NXDOMAIN,
             4 => ResultCode::NOTIMP,
             5 => ResultCode::REFUSED,
-            0 | _ => ResultCode::NOERROR,
+            _ => ResultCode::NOERROR,
         }
     }
 }
