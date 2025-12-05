@@ -1,4 +1,7 @@
-use crate::{buffer::BytePacketBuffer, header::DnsHeader, question::DnsQuestion, record::DnsRecord, types::QueryType};
+use crate::{
+    buffer::BytePacketBuffer, header::DnsHeader, question::DnsQuestion, record::DnsRecord,
+    types::QueryType,
+};
 
 #[derive(Clone, Debug)]
 pub struct DnsPacket {
@@ -6,7 +9,7 @@ pub struct DnsPacket {
     pub questions: Vec<DnsQuestion>,
     pub answers: Vec<DnsRecord>,
     pub authorities: Vec<DnsRecord>,
-    pub resources: Vec<DnsRecord>
+    pub resources: Vec<DnsRecord>,
 }
 
 impl Default for DnsPacket {
@@ -22,11 +25,13 @@ impl DnsPacket {
             questions: Vec::new(),
             answers: Vec::new(),
             authorities: Vec::new(),
-            resources: Vec::new()
+            resources: Vec::new(),
         }
     }
 
-    pub fn from_buffer(buffer: &mut BytePacketBuffer) -> Result<DnsPacket, Box<dyn std::error::Error>> {
+    pub fn from_buffer(
+        buffer: &mut BytePacketBuffer,
+    ) -> Result<DnsPacket, Box<dyn std::error::Error>> {
         let mut p = DnsPacket::new();
 
         p.header.read(buffer)?;
@@ -53,7 +58,10 @@ impl DnsPacket {
         Ok(p)
     }
 
-    pub fn write(&mut self, buffer: &mut BytePacketBuffer) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn write(
+        &mut self,
+        buffer: &mut BytePacketBuffer,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         self.header.questions = self.questions.len() as u16;
         self.header.answers = self.answers.len() as u16;
         self.header.authoritative_entries = self.authorities.len() as u16;
@@ -76,6 +84,4 @@ impl DnsPacket {
 
         Ok(())
     }
-
 }
-

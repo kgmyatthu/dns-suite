@@ -51,9 +51,7 @@ fn print_packet(domain: &str, qtype: QueryType, server: IpAddr, packet: &DnsPack
     let qtype_display = display_query_type(qtype);
     let domain_display = display_domain(domain);
 
-    println!(
-        "; <<>> DiG <<>> @{server} {domain_display} {qtype_display}"
-    );
+    println!("; <<>> DiG <<>> @{server} {domain_display} {qtype_display}");
     println!(";; global options: +cmd");
     println!(";; Got answer:\n");
     println!(

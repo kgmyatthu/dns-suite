@@ -214,7 +214,22 @@ fn records_read_and_write_roundtrip() {
         buffer.seek(0);
         let parsed = DnsRecord::read(&mut buffer).unwrap();
         match (&record, &parsed) {
-            (DnsRecord::UNKNOWN { domain: original, qtype, class, ttl, data }, DnsRecord::UNKNOWN { domain, qtype: pq, class: pc, ttl: pt, data: pd }) => {
+            (
+                DnsRecord::UNKNOWN {
+                    domain: original,
+                    qtype,
+                    class,
+                    ttl,
+                    data,
+                },
+                DnsRecord::UNKNOWN {
+                    domain,
+                    qtype: pq,
+                    class: pc,
+                    ttl: pt,
+                    data: pd,
+                },
+            ) => {
                 assert_eq!(original, domain);
                 assert_eq!(qtype, pq);
                 assert_eq!(class, pc);
@@ -236,9 +251,18 @@ fn full_packet_write_and_parse() {
     let parsed = DnsPacket::from_buffer(&mut buffer).unwrap();
 
     assert_eq!(packet.header.id, parsed.header.id);
-    assert_eq!(packet.header.recursion_desired, parsed.header.recursion_desired);
-    assert_eq!(packet.header.recursion_available, parsed.header.recursion_available);
-    assert_eq!(packet.header.authoritative_answer, parsed.header.authoritative_answer);
+    assert_eq!(
+        packet.header.recursion_desired,
+        parsed.header.recursion_desired
+    );
+    assert_eq!(
+        packet.header.recursion_available,
+        parsed.header.recursion_available
+    );
+    assert_eq!(
+        packet.header.authoritative_answer,
+        parsed.header.authoritative_answer
+    );
     assert_eq!(packet.questions, parsed.questions);
     assert_eq!(packet.answers, parsed.answers);
     assert_eq!(packet.authorities, parsed.authorities);
