@@ -189,13 +189,15 @@ impl BytePacketBuffer {
 
 #[cfg(test)]
 mod tests {
+    use crate::buffer::MAX_PACKET_SIZE;
+
     use super::BytePacketBuffer;
 
     #[test]
     fn respects_buffer_boundaries_and_positions() {
         let mut buffer = BytePacketBuffer::new();
 
-        for i in 0..512u16 {
+        for i in 0..(MAX_PACKET_SIZE as u16) {
             // All writes within the buffer should succeed
             buffer.write_u8((i & 0xFF) as u8).unwrap();
         }
