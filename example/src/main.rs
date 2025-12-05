@@ -144,7 +144,10 @@ fn parse_query_type(name: &str) -> Option<QueryType> {
         "MX" => Some(QueryType::MX),
         "NS" => Some(QueryType::NS),
         "CNAME" => Some(QueryType::CNAME),
-        _ => None,
+        "TXT" => Some(QueryType::TXT),
+        "PTR" => Some(QueryType::PTR),
+        "SOA" => Some(QueryType::SOA),
+        _ => name.parse::<u16>().ok().map(QueryType::from_num),
     }
 }
 
@@ -160,14 +163,9 @@ fn display_class(class: u16) -> String {
 
 fn display_query_type(qtype: QueryType) -> String {
     match qtype {
-        QueryType::A => "A",
-        QueryType::AAAA => "AAAA",
-        QueryType::MX => "MX",
-        QueryType::NS => "NS",
-        QueryType::CNAME => "CNAME",
-        QueryType::UNKNOWN(value) => return format!("TYPE{}", value),
+        QueryType::UNKNOWN(value) => format!("TYPE{}", value),
+        other => format!("{:?}", other),
     }
-    .to_string()
 }
 
 fn display_record(record: &DnsRecord) -> String {
@@ -257,6 +255,57 @@ fn display_record(record: &DnsRecord) -> String {
             );
             line
         }
+        DnsRecord::TXT {
+            domain,
+            ttl,
+            class,
+            data,
+            ..
+        } => format!(
+            "{}\t{}\t{}\tTXT\t{}",
+            display_domain(domain),
+            ttl,
+            display_class(*class),
+            data.join(" ")
+        ),
+        DnsRecord::SOA {
+            domain,
+            ttl,
+            class,
+            mname,
+            rname,
+            serial,
+            refresh,
+            retry,
+            expire,
+            minimum,
+            ..
+        } => format!(
+            "{}\t{}\t{}\tSOA\t{} {} ( {} {} {} {} {} )",
+            display_domain(domain),
+            ttl,
+            display_class(*class),
+            display_domain(mname),
+            display_domain(rname),
+            serial,
+            refresh,
+            retry,
+            expire,
+            minimum
+        ),
+        DnsRecord::PTR {
+            domain,
+            ttl,
+            class,
+            host,
+            ..
+        } => format!(
+            "{}\t{}\t{}\tPTR\t{}",
+            display_domain(domain),
+            ttl,
+            display_class(*class),
+            display_domain(host)
+        ),
     }
 }
 

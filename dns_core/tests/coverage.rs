@@ -204,7 +204,7 @@ fn records_read_and_write_roundtrip() {
             qtype: QueryType::UNKNOWN(65000),
             class: 1,
             ttl: 0,
-            len: 4,
+            data: vec![1, 2, 3, 4],
         },
     ];
 
@@ -214,12 +214,12 @@ fn records_read_and_write_roundtrip() {
         buffer.seek(0);
         let parsed = DnsRecord::read(&mut buffer).unwrap();
         match (&record, &parsed) {
-            (DnsRecord::UNKNOWN { domain: original, qtype, class, ttl, len }, DnsRecord::UNKNOWN { domain, qtype: pq, class: pc, ttl: pt, len: pl }) => {
+            (DnsRecord::UNKNOWN { domain: original, qtype, class, ttl, data }, DnsRecord::UNKNOWN { domain, qtype: pq, class: pc, ttl: pt, data: pd }) => {
                 assert_eq!(original, domain);
                 assert_eq!(qtype, pq);
                 assert_eq!(class, pc);
                 assert_eq!(ttl, pt);
-                assert_eq!(len, pl);
+                assert_eq!(data, pd);
             }
             _ => assert_eq!(record, parsed),
         }
