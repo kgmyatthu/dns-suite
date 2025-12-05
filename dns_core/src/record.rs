@@ -509,6 +509,23 @@ mod tests {
     }
 
     #[test]
+    fn txt_record_supports_empty_segments() {
+        let record = DnsRecord::TXT {
+            domain: "empty.txt".into(),
+            class: 1,
+            ttl: 300,
+            data: vec!["".into(), "segment".into()],
+        };
+
+        let mut buffer = BytePacketBuffer::new();
+        record.write(&mut buffer).unwrap();
+        buffer.seek(0);
+
+        let parsed = DnsRecord::read(&mut buffer).unwrap();
+        assert_eq!(record, parsed);
+    }
+
+    #[test]
     fn ptr_record_roundtrip() {
         let record = DnsRecord::PTR {
             domain: "4.3.2.1.in-addr.arpa".into(),
