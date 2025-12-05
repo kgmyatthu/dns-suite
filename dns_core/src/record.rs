@@ -9,7 +9,7 @@ pub enum DnsRecord {
         qtype: QueryType,
         class: u16,
         ttl: u32,
-        len: u16,
+        data: Vec<u8>,
     },
     A {
         domain: String,
@@ -36,6 +36,30 @@ pub enum DnsRecord {
         host: String,
         ttl: u32,
     }, // 15
+    TXT {
+        domain: String,
+        class: u16,
+        ttl: u32,
+        data: Vec<String>,
+    }, // 16
+    SOA {
+        domain: String,
+        class: u16,
+        ttl: u32,
+        mname: String,
+        rname: String,
+        serial: u32,
+        refresh: u32,
+        retry: u32,
+        expire: u32,
+        minimum: u32,
+    }, // 6
+    PTR {
+        domain: String,
+        class: u16,
+        host: String,
+        ttl: u32,
+    }, // 12
     AAAA {
         domain: String,
         addr: Ipv6Addr,
@@ -86,6 +110,32 @@ impl DnsRecord {
                     class,
                 })
             }
+            QueryType::SOA => {
+                let mut mname = String::new();
+                buffer.read_qname(&mut mname)?;
+
+                let mut rname = String::new();
+                buffer.read_qname(&mut rname)?;
+
+                let serial = buffer.read_u32()?;
+                let refresh = buffer.read_u32()?;
+                let retry = buffer.read_u32()?;
+                let expire = buffer.read_u32()?;
+                let minimum = buffer.read_u32()?;
+
+                Ok(DnsRecord::SOA {
+                    domain,
+                    class,
+                    ttl,
+                    mname,
+                    rname,
+                    serial,
+                    refresh,
+                    retry,
+                    expire,
+                    minimum,
+                })
+            }
             QueryType::CNAME => {
                 let mut host = String::new();
                 buffer.read_qname(&mut host)?;
@@ -95,6 +145,17 @@ impl DnsRecord {
                     host,
                     ttl,
                     class,
+                })
+            }
+            QueryType::PTR => {
+                let mut host = String::new();
+                buffer.read_qname(&mut host)?;
+
+                Ok(DnsRecord::PTR {
+                    domain,
+                    class,
+                    ttl,
+                    host,
                 })
             }
             QueryType::MX => {
@@ -108,6 +169,29 @@ impl DnsRecord {
                     host,
                     ttl,
                     class,
+                })
+            }
+            QueryType::TXT => {
+                let mut data = Vec::new();
+                let mut bytes_read = 0u16;
+                while bytes_read < len {
+                    let txt_len = buffer.read()? as u16;
+                    bytes_read += 1;
+                    if bytes_read + txt_len > len {
+                        return Err("TXT record length exceeds rdata".into());
+                    }
+                    let start = buffer.pos();
+                    let txt_bytes = buffer.get_range(start, txt_len as usize)?.to_vec();
+                    buffer.step(txt_len as usize);
+                    bytes_read += txt_len;
+                    data.push(String::from_utf8_lossy(&txt_bytes).to_string());
+                }
+
+                Ok(DnsRecord::TXT {
+                    domain,
+                    class,
+                    ttl,
+                    data,
                 })
             }
             QueryType::AAAA => {
@@ -133,13 +217,17 @@ impl DnsRecord {
                     class,
                 })
             }
-            QueryType::UNKNOWN(_) => Ok(DnsRecord::UNKNOWN {
-                domain,
-                qtype,
-                class,
-                ttl,
-                len,
-            }),
+            _ => {
+                let data = buffer.get_range(buffer.pos(), len as usize)?.to_vec();
+                buffer.step(len as usize);
+                Ok(DnsRecord::UNKNOWN {
+                    domain,
+                    qtype,
+                    class,
+                    ttl,
+                    data,
+                })
+            }
         }
     }
 
@@ -193,6 +281,39 @@ impl DnsRecord {
 
                 Ok(buffer.pos() - start_pos)
             }
+            DnsRecord::SOA {
+                domain,
+                class,
+                ttl,
+                mname,
+                rname,
+                serial,
+                refresh,
+                retry,
+                expire,
+                minimum,
+            } => {
+                buffer.write_qname(domain.as_str())?;
+                buffer.write_u16(QueryType::SOA.to_num())?;
+                buffer.write_u16(*class)?;
+                buffer.write_u32(*ttl)?;
+
+                let rdlength_pos = buffer.pos();
+                buffer.write_u16(0)?;
+                let rdata_start = buffer.pos();
+
+                buffer.write_qname(mname)?;
+                buffer.write_qname(rname)?;
+                buffer.write_u32(*serial)?;
+                buffer.write_u32(*refresh)?;
+                buffer.write_u32(*retry)?;
+                buffer.write_u32(*expire)?;
+                buffer.write_u32(*minimum)?;
+
+                let rdata_len = (buffer.pos() - rdata_start) as u16;
+                buffer.set_u16(rdlength_pos, rdata_len)?;
+                Ok(buffer.pos() - start_pos)
+            }
             DnsRecord::CNAME {
                 domain,
                 host,
@@ -235,6 +356,55 @@ impl DnsRecord {
                 buffer.set_u16(pos, size as u16)?;
                 Ok(buffer.pos() - start_pos)
             }
+            DnsRecord::PTR {
+                domain,
+                class,
+                host,
+                ttl,
+            } => {
+                buffer.write_qname(domain)?;
+                buffer.write_u16(QueryType::PTR.to_num())?;
+                buffer.write_u16(*class)?;
+                buffer.write_u32(*ttl)?;
+
+                let rdlength_pos = buffer.pos();
+                buffer.write_u16(0)?;
+                let rdata_start = buffer.pos();
+
+                buffer.write_qname(host)?;
+
+                let rdata_len = (buffer.pos() - rdata_start) as u16;
+                buffer.set_u16(rdlength_pos, rdata_len)?;
+
+                Ok(buffer.pos() - start_pos)
+            }
+            DnsRecord::TXT {
+                domain,
+                class,
+                ttl,
+                data,
+            } => {
+                buffer.write_qname(domain)?;
+                buffer.write_u16(QueryType::TXT.to_num())?;
+                buffer.write_u16(*class)?;
+                buffer.write_u32(*ttl)?;
+
+                let rdlength_pos = buffer.pos();
+                buffer.write_u16(0)?;
+                let rdata_start = buffer.pos();
+
+                for txt in data.iter() {
+                    let bytes = txt.as_bytes();
+                    buffer.write_u8(bytes.len() as u8)?;
+                    for byte in bytes {
+                        buffer.write_u8(*byte)?;
+                    }
+                }
+
+                let rdata_len = (buffer.pos() - rdata_start) as u16;
+                buffer.set_u16(rdlength_pos, rdata_len)?;
+                Ok(buffer.pos() - start_pos)
+            }
             DnsRecord::AAAA {
                 domain,
                 addr,
@@ -257,16 +427,16 @@ impl DnsRecord {
                 qtype,
                 class,
                 ttl,
-                len,
+                data,
             } => {
                 buffer.write_qname(domain)?;
                 buffer.write_u16(qtype.to_num())?;
                 buffer.write_u16(*class)?;
                 buffer.write_u32(*ttl)?;
-                buffer.write_u16(*len)?;
+                buffer.write_u16(data.len() as u16)?;
 
-                for _ in 0..*len {
-                    buffer.write_u8(0)?;
+                for byte in data.iter() {
+                    buffer.write_u8(*byte)?;
                 }
 
                 Ok(buffer.pos() - start_pos)
