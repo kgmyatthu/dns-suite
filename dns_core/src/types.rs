@@ -16,7 +16,7 @@ pub enum QueryType {
     ISDN,      // 20
     RT,        // 21
     NSAP,      // 22
-    NSAP_PTR,  // 23
+    NsapPtr,  // 23
     SIG,       // 24
     KEY,       // 25
     PX,        // 26
@@ -88,7 +88,7 @@ impl QueryType {
             QueryType::ISDN => 20,
             QueryType::RT => 21,
             QueryType::NSAP => 22,
-            QueryType::NSAP_PTR => 23,
+            QueryType::NsapPtr => 23,
             QueryType::SIG => 24,
             QueryType::KEY => 25,
             QueryType::PX => 26,
@@ -159,7 +159,7 @@ impl QueryType {
             20 => QueryType::ISDN,
             21 => QueryType::RT,
             22 => QueryType::NSAP,
-            23 => QueryType::NSAP_PTR,
+            23 => QueryType::NsapPtr,
             24 => QueryType::SIG,
             25 => QueryType::KEY,
             26 => QueryType::PX,
