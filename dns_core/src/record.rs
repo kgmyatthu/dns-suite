@@ -444,3 +444,116 @@ impl DnsRecord {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::DnsRecord;
+    use crate::{buffer::BytePacketBuffer, types::QueryType};
+    use std::net::Ipv6Addr;
+
+    #[test]
+    fn aaaa_record_roundtrip() {
+        let record = DnsRecord::AAAA {
+            domain: "ipv6.test".into(),
+            addr: Ipv6Addr::new(0x2001, 0xdb8, 0, 0, 0, 0, 0, 1),
+            class: 1,
+            ttl: 600,
+        };
+
+        let mut buffer = BytePacketBuffer::new();
+        record.write(&mut buffer).unwrap();
+        buffer.seek(0);
+
+        let parsed = DnsRecord::read(&mut buffer).unwrap();
+        assert_eq!(record, parsed);
+    }
+
+    #[test]
+    fn soa_record_roundtrip() {
+        let record = DnsRecord::SOA {
+            domain: "example.com".into(),
+            class: 1,
+            ttl: 3600,
+            mname: "ns1.example.com".into(),
+            rname: "hostmaster.example.com".into(),
+            serial: 20240101,
+            refresh: 7200,
+            retry: 600,
+            expire: 1209600,
+            minimum: 3600,
+        };
+
+        let mut buffer = BytePacketBuffer::new();
+        record.write(&mut buffer).unwrap();
+        buffer.seek(0);
+
+        let parsed = DnsRecord::read(&mut buffer).unwrap();
+        assert_eq!(record, parsed);
+    }
+
+    #[test]
+    fn txt_record_roundtrip() {
+        let record = DnsRecord::TXT {
+            domain: "txt.example".into(),
+            class: 1,
+            ttl: 450,
+            data: vec!["v=spf1 -all".into(), "hello world".into()],
+        };
+
+        let mut buffer = BytePacketBuffer::new();
+        record.write(&mut buffer).unwrap();
+        buffer.seek(0);
+
+        let parsed = DnsRecord::read(&mut buffer).unwrap();
+        assert_eq!(record, parsed);
+    }
+
+    #[test]
+    fn txt_record_supports_empty_segments() {
+        let record = DnsRecord::TXT {
+            domain: "empty.txt".into(),
+            class: 1,
+            ttl: 300,
+            data: vec!["".into(), "segment".into()],
+        };
+
+        let mut buffer = BytePacketBuffer::new();
+        record.write(&mut buffer).unwrap();
+        buffer.seek(0);
+
+        let parsed = DnsRecord::read(&mut buffer).unwrap();
+        assert_eq!(record, parsed);
+    }
+
+    #[test]
+    fn ptr_record_roundtrip() {
+        let record = DnsRecord::PTR {
+            domain: "4.3.2.1.in-addr.arpa".into(),
+            class: 1,
+            ttl: 86400,
+            host: "example.com".into(),
+        };
+
+        let mut buffer = BytePacketBuffer::new();
+        record.write(&mut buffer).unwrap();
+        buffer.seek(0);
+
+        let parsed = DnsRecord::read(&mut buffer).unwrap();
+        assert_eq!(record, parsed);
+    }
+
+    #[test]
+    fn txt_record_errors_when_length_exceeds_rdata() {
+        let mut buffer = BytePacketBuffer::new();
+        buffer.write_qname("txt.example").unwrap();
+        buffer.write_u16(QueryType::TXT.to_num()).unwrap();
+        buffer.write_u16(1).unwrap();
+        buffer.write_u32(0).unwrap();
+        buffer.write_u16(5).unwrap(); // rdata length claims 5 bytes
+
+        buffer.write_u8(10).unwrap(); // txt length makes the record invalid
+
+        buffer.seek(0);
+        assert!(DnsRecord::read(&mut buffer).is_err());
+    }
+}
