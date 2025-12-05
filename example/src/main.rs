@@ -1,7 +1,7 @@
 use std::env;
 use std::fmt::Write as _;
-use std::io::ErrorKind;
-use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, UdpSocket};
+use std::io::{ErrorKind, Read, Write};
+use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, TcpStream, UdpSocket};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use dns_core::buffer::BytePacketBuffer;
@@ -34,6 +34,7 @@ fn lookup(
 
     let mut req_buffer = BytePacketBuffer::new();
     request.write(&mut req_buffer)?;
+    let request_size = req_buffer.pos();
 
     let socket = match server {
         IpAddr::V4(_) => UdpSocket::bind((Ipv4Addr::UNSPECIFIED, 0))?,
@@ -44,6 +45,38 @@ fn lookup(
 
     let mut resp_buffer = BytePacketBuffer::new();
     let (response_size, _) = socket.recv_from(&mut resp_buffer.buffer)?;
+    resp_buffer.set_size(response_size);
+
+    let packet = DnsPacket::from_buffer(&mut resp_buffer)?;
+    if packet.header.truncated_message {
+        return tcp_lookup(&req_buffer, request_size, server);
+    }
+
+    Ok(packet)
+}
+
+fn tcp_lookup(
+    req_buffer: &BytePacketBuffer,
+    request_size: usize,
+    server: IpAddr,
+) -> Result<DnsPacket, Box<dyn std::error::Error>> {
+    let mut stream = TcpStream::connect((server, 53))?;
+    stream.set_read_timeout(Some(Duration::from_secs(5)))?;
+
+    let length_prefix = (request_size as u16).to_be_bytes();
+    stream.write_all(&length_prefix)?;
+    stream.write_all(&req_buffer.buffer[..request_size])?;
+
+    let mut response_len_bytes = [0u8; 2];
+    stream.read_exact(&mut response_len_bytes)?;
+    let response_size = u16::from_be_bytes(response_len_bytes) as usize;
+
+    if response_size > dns_core::buffer::MAX_PACKET_SIZE {
+        return Err(format!("TCP response exceeds buffer: {response_size} bytes").into());
+    }
+
+    let mut resp_buffer = BytePacketBuffer::new();
+    stream.read_exact(&mut resp_buffer.buffer[..response_size])?;
     resp_buffer.set_size(response_size);
 
     DnsPacket::from_buffer(&mut resp_buffer)
